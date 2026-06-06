@@ -1,5 +1,5 @@
 {
-  "name": "Office Activity Tracker",
+  "name": "RAMSync",
   "description": "An elegant, single-screen dashboard to log daily desk tasks, counter processed papers, track outgoing and incoming files, and compile solid work summary reports.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
