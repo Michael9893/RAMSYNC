@@ -51,13 +51,15 @@ const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 interface TaskCardProps {
   config: TaskConfig;
   count: number;
-  onIncrement: () => void;
+  onIncrement: (detail?: string) => void;
   onDecrement: () => void;
   onSetSpecific: (value: number) => void;
   isFocused: boolean;
   onFocus: () => void;
   incomingCallTimes?: string[];
   onRemoveIncomingCallTime?: (index: number) => void;
+  detailsList?: string[];
+  onRemoveDetailIndex?: (index: number) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -70,10 +72,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onFocus,
   incomingCallTimes,
   onRemoveIncomingCallTime,
+  detailsList,
+  onRemoveDetailIndex,
 }) => {
   const IconComponent = IconMap[config.iconName] || ClipboardCopy;
   const [isEditing, setIsEditing] = useState(false);
   const [editVal, setEditVal] = useState(count.toString());
+  const [typedHandcarry, setTypedHandcarry] = useState("");
+  const [typedOffice, setTypedOffice] = useState("");
 
   const handleApplyEdit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +143,23 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       whileTap={{ scale: 0.98 }}
       onClick={() => {
         if (!isEditing) {
-          onIncrement();
+          if (config.key === "incomingCalls") {
+            onIncrement("Within DSWD");
+          } else if (config.key === "receivedRsoRto") {
+            onIncrement("Unspecified Office");
+          } else if (config.key === "incomingHandcarryFiles") {
+            onIncrement("General Desk");
+          } else if (config.key === "messengerialCoPsp") {
+            onIncrement("Unspecified Office");
+          } else if (config.key === "messengerialPsp") {
+            onIncrement("Unspecified Office");
+          } else if (config.key === "messengerialGeneral") {
+            onIncrement("Unspecified Office");
+          } else if (config.key === "messengerialPostal") {
+            onIncrement("Unspecified Office");
+          } else {
+            onIncrement();
+          }
           onFocus();
         }
       }}
@@ -151,7 +173,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       </div>
 
       {/* Card Header Info */}
-      <div className="relative z-10 text-left">
+      <div className="relative z-10 text-left w-full">
         <div className="flex items-center justify-between mb-1">
           <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${theme.badge}`}>
             {config.category}
@@ -163,27 +185,187 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <h3 className="font-semibold text-sm text-slate-800 leading-tight">
           {config.label}
         </h3>
-        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5" title={config.description}>
+        <p className="text-[11px] text-slate-500 mt-0.5" title={config.description}>
           {config.description}
         </p>
 
-        {/* Real-time Call Timestamps Feed */}
-        {config.key === "incomingCalls" && incomingCallTimes && incomingCallTimes.length > 0 && (
+        {/* Dynamic Interactive Selection Fields for incomingCalls */}
+        {config.key === "incomingCalls" && (
+          <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-col gap-2 relative z-20" onClick={(e) => e.stopPropagation()}>
+            <label className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold block">Call Concern (Tap to log):</label>
+            <div className="grid grid-cols-2 gap-1">
+              {["Within DSWD", "TRANSFER ACC", "CREATE ACC", "Concerns of other ODSUs"].map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onIncrement(opt);
+                  }}
+                  className="px-1.5 py-1 text-[9px] text-left font-bold truncate rounded bg-slate-50 hover:bg-blue-600 hover:text-white text-slate-700 border border-slate-200 hover:border-blue-600 transition-all shadow-4xs cursor-pointer"
+                  title={`Log call for: ${opt}`}
+                >
+                  + {opt === "Concerns of other ODSUs" ? "Other ODSU" : opt === "TRANSFER ACC" ? "Transfer Acc" : opt === "CREATE ACC" ? "Create Acc" : "Within DSWD"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Interactive Selection Fields for receivedRsoRto */}
+        {config.key === "receivedRsoRto" && (
+          <div className="mt-3 py-2 border-t border-slate-100 flex flex-col gap-1.5 relative z-20" onClick={(e) => e.stopPropagation()}>
+            <label className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold block">Office Origin:</label>
+            <div className="flex gap-1">
+              <input
+                type="text"
+                placeholder="Type office & Enter..."
+                value={typedOffice}
+                onChange={(e) => setTypedOffice(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const val = typedOffice.trim() || "Unspecified Office";
+                    onIncrement(val);
+                    setTypedOffice("");
+                  }
+                }}
+                className="flex-1 min-w-0 px-2 py-1 text-xs font-semibold rounded bg-slate-50 border border-slate-200 text-slate-705 placeholder-slate-400 outline-hidden focus:bg-white focus:border-blue-400 transition-all font-sans"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const val = typedOffice.trim() || "Unspecified Office";
+                  onIncrement(val);
+                  setTypedOffice("");
+                }}
+                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold transition-all shadow-4xs shrink-0 cursor-pointer"
+              >
+                + Log
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Interactive Selection Fields for messengerial categories */}
+        {(config.key === "messengerialCoPsp" || 
+          config.key === "messengerialPsp" || 
+          config.key === "messengerialGeneral" || 
+          config.key === "messengerialPostal") && (
+          <div className="mt-3 py-2 border-t border-slate-100 flex flex-col gap-1.5 relative z-20" onClick={(e) => e.stopPropagation()}>
+            <label className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold block">Office Received For:</label>
+            <div className="flex gap-1">
+              <input
+                type="text"
+                placeholder="Type office & Enter..."
+                value={typedOffice}
+                onChange={(e) => setTypedOffice(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const val = typedOffice.trim() || "Unspecified Office";
+                    onIncrement(val);
+                    setTypedOffice("");
+                  }
+                }}
+                className="flex-1 min-w-0 px-2 py-1 text-xs font-semibold rounded bg-slate-50 border border-slate-200 text-slate-705 placeholder-slate-400 outline-hidden focus:bg-white focus:border-blue-400 transition-all font-sans"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const val = typedOffice.trim() || "Unspecified Office";
+                  onIncrement(val);
+                  setTypedOffice("");
+                }}
+                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold transition-all shadow-4xs shrink-0 cursor-pointer"
+              >
+                + Log
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Interactive Selection Fields for incomingHandcarryFiles */}
+        {config.key === "incomingHandcarryFiles" && (
+          <div className="mt-3 py-2 border-t border-slate-100 flex flex-col gap-1.5 relative z-20" onClick={(e) => e.stopPropagation()}>
+            <label className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold block">Where was paper received?</label>
+            <div className="flex gap-1">
+              <input
+                type="text"
+                placeholder="Type location & Enter..."
+                value={typedHandcarry}
+                onChange={(e) => setTypedHandcarry(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const val = typedHandcarry.trim() || "Unspecified Office";
+                    onIncrement(val);
+                    setTypedHandcarry("");
+                  }
+                }}
+                className="flex-1 min-w-0 px-2 py-1 text-xs font-semibold rounded bg-slate-50 border border-slate-200 text-slate-700 placeholder-slate-400 outline-hidden focus:bg-white focus:border-blue-400 transition-all font-sans"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const val = typedHandcarry.trim() || "Unspecified Office";
+                  onIncrement(val);
+                  setTypedHandcarry("");
+                }}
+                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold transition-all shadow-4xs shrink-0 cursor-pointer"
+              >
+                + Log
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Real-time Feeds Display & Removal Badges */}
+        {((config.key === "incomingCalls" && incomingCallTimes && incomingCallTimes.length > 0) || 
+          (detailsList && detailsList.length > 0)) && (
           <div 
-            className="flex flex-wrap gap-1 mt-2 max-h-[70px] overflow-y-auto pr-1" 
+            className="flex flex-wrap gap-1 mt-2.5 pt-2.5 border-t border-slate-100/50 max-h-[105px] overflow-y-auto pr-1 relative z-20" 
             onClick={(e) => e.stopPropagation()}
           >
-            {incomingCallTimes.map((t, idx) => (
-              <span 
-                key={idx} 
-                onClick={() => onRemoveIncomingCallTime?.(idx)}
-                title="Click to remove this specific call timestamp"
-                className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[9px] font-mono leading-none bg-blue-50 hover:bg-rose-50 text-blue-750 hover:text-rose-700 border border-blue-200 hover:border-rose-200 rounded-sm transition-all cursor-pointer"
-              >
-                {t}
-                <span className="font-sans font-bold text-blue-400 hover:text-rose-500 select-none">×</span>
-              </span>
-            ))}
+            {config.key === "incomingCalls" && incomingCallTimes
+              ? incomingCallTimes.map((t, idx) => (
+                  <span 
+                    key={idx} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveIncomingCallTime?.(idx);
+                    }}
+                    title="Click to remove this specific call log"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[8.5px] font-semibold leading-none bg-blue-50 hover:bg-rose-50 text-blue-800 hover:text-rose-700 border border-blue-200 hover:border-rose-200 rounded-sm transition-all cursor-pointer"
+                  >
+                    {t}
+                    <span className="font-sans font-extrabold text-blue-400 hover:text-rose-500 select-none ml-0.5">×</span>
+                  </span>
+                ))
+              : detailsList && detailsList.map((d, idx) => (
+                  <span 
+                    key={idx} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveDetailIndex?.(idx);
+                    }}
+                    title="Click to remove this specific log item"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[8.5px] font-semibold leading-none bg-indigo-50 hover:bg-rose-50 text-indigo-800 hover:text-rose-700 border border-indigo-200 hover:border-rose-200 rounded-sm transition-all cursor-pointer"
+                  >
+                    {d}
+                    <span className="font-sans font-extrabold text-indigo-400 hover:text-rose-500 select-none ml-0.5">×</span>
+                  </span>
+                ))
+            }
           </div>
         )}
       </div>

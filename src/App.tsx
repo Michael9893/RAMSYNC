@@ -28,15 +28,15 @@ import {
   ChevronRight,
   User,
   ShieldCheck,
-  FileDown,
-  PanelRight
+  FileDown
 } from "lucide-react";
-import { BaseCounters, Report, TASK_CONFIGS } from "./types";
+import { BaseCounters, Report, TASK_CONFIGS, TodayTask, RushDocument } from "./types";
 import { generateAutomatedSummary, getFriendlyDate, getInitialCounters } from "./utils";
 import { TaskCard } from "./components/TaskCard";
 import { OtherTasksManager } from "./components/OtherTasksManager";
 import { ReportArchive } from "./components/ReportArchive";
 import { RamSyncLogo } from "./components/RamSyncLogo";
+import TaskPlannerView from "./components/TaskPlannerView";
 
 export default function App() {
   const [counters, setCounters] = useState<BaseCounters>(getInitialCounters());
@@ -46,18 +46,113 @@ export default function App() {
   const [time, setTime] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [buttonSearchQuery, setButtonSearchQuery] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "archive" | "help" | "sidebar">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "planner" | "archive" | "help">("dashboard");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
-  // Keep track of incoming call timestamps (e.g. ['11:21:40 AM']) with persistent local cache
+  // Today's Tasks checklist with persistent local cache
+  const [todayTasks, setTodayTasks] = useState<TodayTask[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_today_tasks");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Rush Documents with target completion times
+  const [rushDocuments, setRushDocuments] = useState<RushDocument[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_rush_documents");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Self-reflection learning logs
+  const [thingsLearned, setThingsLearned] = useState<string>(() => {
+    return localStorage.getItem("office_activity_tracker_things_learned") || "";
+  });
+
+  // Work acceleration coworker / supervisor advice
+  const [officeAdvice, setOfficeAdvice] = useState<string>(() => {
+    return localStorage.getItem("office_activity_tracker_office_advice") || "";
+  });
+
+  // Keep track of incoming call timestamps (e.g. ['11:21:40 AM - Within DSWD']) with persistent local cache
   const [incomingCallTimes, setIncomingCallTimes] = useState<string[]>(() => {
     const saved = localStorage.getItem("office_activity_tracker_draft_incoming_times");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Keep track of received RSO & RTO origin logs
+  const [receivedRsoRtoDetails, setReceivedRsoRtoDetails] = useState<string[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_draft_rso_details");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Keep track of handcarry received locations
+  const [incomingHandcarryDetails, setIncomingHandcarryDetails] = useState<string[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_draft_handcarry_details");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Keep track of messengerial processed locations
+  const [messengerialCoPspDetails, setMessengerialCoPspDetails] = useState<string[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_draft_messengerial_co_psp");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [messengerialPspDetails, setMessengerialPspDetails] = useState<string[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_draft_messengerial_psp");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [messengerialGeneralDetails, setMessengerialGeneralDetails] = useState<string[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_draft_messengerial_general");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [messengerialPostalDetails, setMessengerialPostalDetails] = useState<string[]>(() => {
+    const saved = localStorage.getItem("office_activity_tracker_draft_messengerial_postal");
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
     localStorage.setItem("office_activity_tracker_draft_incoming_times", JSON.stringify(incomingCallTimes));
   }, [incomingCallTimes]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_draft_rso_details", JSON.stringify(receivedRsoRtoDetails));
+  }, [receivedRsoRtoDetails]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_draft_handcarry_details", JSON.stringify(incomingHandcarryDetails));
+  }, [incomingHandcarryDetails]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_draft_messengerial_co_psp", JSON.stringify(messengerialCoPspDetails));
+  }, [messengerialCoPspDetails]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_draft_messengerial_psp", JSON.stringify(messengerialPspDetails));
+  }, [messengerialPspDetails]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_draft_messengerial_general", JSON.stringify(messengerialGeneralDetails));
+  }, [messengerialGeneralDetails]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_draft_messengerial_postal", JSON.stringify(messengerialPostalDetails));
+  }, [messengerialPostalDetails]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_today_tasks", JSON.stringify(todayTasks));
+  }, [todayTasks]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_rush_documents", JSON.stringify(rushDocuments));
+  }, [rushDocuments]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_things_learned", thingsLearned);
+  }, [thingsLearned]);
+
+  useEffect(() => {
+    localStorage.setItem("office_activity_tracker_office_advice", officeAdvice);
+  }, [officeAdvice]);
 
   // Clock trigger to keep real-time desk tracking fresh
   useEffect(() => {
@@ -87,17 +182,37 @@ export default function App() {
   }, []);
 
   // Callback to increment a task counter by 1
-  const handleIncrement = (key: keyof BaseCounters) => {
+  const handleIncrement = (key: keyof BaseCounters, detail?: string) => {
     setCounters((prev) => {
       const nextVal = prev[key] + 1;
       return { ...prev, [key]: nextVal };
     });
     setFocusedKey(key);
 
+    const timeObj = getFriendlyDate();
+    const compactTime = timeObj.timeString;
+
     if (key === "incomingCalls") {
-      const timeObj = getFriendlyDate();
-      // Extract only the hour:minute:second part for compact display
-      setIncomingCallTimes((prev) => [...prev, timeObj.timeString]);
+      const label = detail ? ` - ${detail}` : " - Within DSWD";
+      setIncomingCallTimes((prev) => [...prev, `${compactTime}${label}`]);
+    } else if (key === "receivedRsoRto") {
+      const origin = detail || "Unspecified Office";
+      setReceivedRsoRtoDetails((prev) => [...prev, `${compactTime} from ${origin}`]);
+    } else if (key === "incomingHandcarryFiles") {
+      const location = detail || "General Desk";
+      setIncomingHandcarryDetails((prev) => [...prev, `${compactTime} at ${location}`]);
+    } else if (key === "messengerialCoPsp") {
+      const office = detail || "Unspecified Office";
+      setMessengerialCoPspDetails((prev) => [...prev, `${compactTime} at ${office}`]);
+    } else if (key === "messengerialPsp") {
+      const office = detail || "Unspecified Office";
+      setMessengerialPspDetails((prev) => [...prev, `${compactTime} at ${office}`]);
+    } else if (key === "messengerialGeneral") {
+      const office = detail || "Unspecified Office";
+      setMessengerialGeneralDetails((prev) => [...prev, `${compactTime} at ${office}`]);
+    } else if (key === "messengerialPostal") {
+      const office = detail || "Unspecified Office";
+      setMessengerialPostalDetails((prev) => [...prev, `${compactTime} at ${office}`]);
     }
   };
 
@@ -111,6 +226,18 @@ export default function App() {
 
     if (key === "incomingCalls") {
       setIncomingCallTimes((prev) => prev.slice(0, -1));
+    } else if (key === "receivedRsoRto") {
+      setReceivedRsoRtoDetails((prev) => prev.slice(0, -1));
+    } else if (key === "incomingHandcarryFiles") {
+      setIncomingHandcarryDetails((prev) => prev.slice(0, -1));
+    } else if (key === "messengerialCoPsp") {
+      setMessengerialCoPspDetails((prev) => prev.slice(0, -1));
+    } else if (key === "messengerialPsp") {
+      setMessengerialPspDetails((prev) => prev.slice(0, -1));
+    } else if (key === "messengerialGeneral") {
+      setMessengerialGeneralDetails((prev) => prev.slice(0, -1));
+    } else if (key === "messengerialPostal") {
+      setMessengerialPostalDetails((prev) => prev.slice(0, -1));
     }
   };
 
@@ -123,18 +250,74 @@ export default function App() {
     }));
     setFocusedKey(key);
 
+    const timeObj = getFriendlyDate();
+    const compactTime = timeObj.timeString;
+
     if (key === "incomingCalls") {
       setIncomingCallTimes((prev) => {
         const diff = nextVal - prev.length;
         if (diff > 0) {
-          const nowStr = new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
-          });
-          const extra = Array(diff).fill(nowStr);
-          return [...prev, ...extra];
+          return [...prev, ...Array(diff).fill(`${compactTime} - Within DSWD`)];
+        } else if (diff < 0) {
+          return prev.slice(0, nextVal);
+        }
+        return prev;
+      });
+    } else if (key === "receivedRsoRto") {
+      setReceivedRsoRtoDetails((prev) => {
+        const diff = nextVal - prev.length;
+        if (diff > 0) {
+          return [...prev, ...Array(diff).fill(`${compactTime} from Unspecified Office`)];
+        } else if (diff < 0) {
+          return prev.slice(0, nextVal);
+        }
+        return prev;
+      });
+    } else if (key === "incomingHandcarryFiles") {
+      setIncomingHandcarryDetails((prev) => {
+        const diff = nextVal - prev.length;
+        if (diff > 0) {
+          return [...prev, ...Array(diff).fill(`${compactTime} at General Desk`)];
+        } else if (diff < 0) {
+          return prev.slice(0, nextVal);
+        }
+        return prev;
+      });
+    } else if (key === "messengerialCoPsp") {
+      setMessengerialCoPspDetails((prev) => {
+        const diff = nextVal - prev.length;
+        if (diff > 0) {
+          return [...prev, ...Array(diff).fill(`${compactTime} at Unspecified Office`)];
+        } else if (diff < 0) {
+          return prev.slice(0, nextVal);
+        }
+        return prev;
+      });
+    } else if (key === "messengerialPsp") {
+      setMessengerialPspDetails((prev) => {
+        const diff = nextVal - prev.length;
+        if (diff > 0) {
+          return [...prev, ...Array(diff).fill(`${compactTime} at Unspecified Office`)];
+        } else if (diff < 0) {
+          return prev.slice(0, nextVal);
+        }
+        return prev;
+      });
+    } else if (key === "messengerialGeneral") {
+      setMessengerialGeneralDetails((prev) => {
+        const diff = nextVal - prev.length;
+        if (diff > 0) {
+          return [...prev, ...Array(diff).fill(`${compactTime} at Unspecified Office`)];
+        } else if (diff < 0) {
+          return prev.slice(0, nextVal);
+        }
+        return prev;
+      });
+    } else if (key === "messengerialPostal") {
+      setMessengerialPostalDetails((prev) => {
+        const diff = nextVal - prev.length;
+        if (diff > 0) {
+          return [...prev, ...Array(diff).fill(`${compactTime} at Unspecified Office`)];
         } else if (diff < 0) {
           return prev.slice(0, nextVal);
         }
@@ -151,6 +334,12 @@ export default function App() {
         setCounters(getInitialCounters());
         setComments([]);
         setIncomingCallTimes([]);
+        setReceivedRsoRtoDetails([]);
+        setIncomingHandcarryDetails([]);
+        setMessengerialCoPspDetails([]);
+        setMessengerialPspDetails([]);
+        setMessengerialGeneralDetails([]);
+        setMessengerialPostalDetails([]);
         setFocusedKey(null);
       }
     }
@@ -181,13 +370,28 @@ export default function App() {
     const totalItems = (Object.keys(counters) as Array<keyof BaseCounters>).reduce(
       (sum, k) => sum + Number(counters[k]),
       0
-    );
-    if (totalItems === 0) {
-      alert("Please log at least 1 task or counter before compiling a summary report.");
+    ) + todayTasks.length + rushDocuments.length;
+    
+    if (totalItems === 0 && !thingsLearned.trim() && !officeAdvice.trim()) {
+      alert("Please log some tasks, desk actions, or planner notes before compiling a summary report.");
       return;
     }
 
-    const compiledText = generateAutomatedSummary(counters, comments);
+    const compiledText = generateAutomatedSummary(
+      counters, 
+      comments, 
+      incomingCallTimes, 
+      receivedRsoRtoDetails, 
+      incomingHandcarryDetails,
+      messengerialCoPspDetails,
+      messengerialPspDetails,
+      messengerialGeneralDetails,
+      messengerialPostalDetails,
+      todayTasks,
+      rushDocuments,
+      thingsLearned,
+      officeAdvice
+    );
     const timeObj = getFriendlyDate();
 
     const newReport: Report = {
@@ -199,6 +403,16 @@ export default function App() {
       comments: [...comments],
       manualSummaryText: compiledText,
       incomingCallTimes: [...incomingCallTimes],
+      receivedRsoRtoDetails: [...receivedRsoRtoDetails],
+      incomingHandcarryDetails: [...incomingHandcarryDetails],
+      messengerialCoPspDetails: [...messengerialCoPspDetails],
+      messengerialPspDetails: [...messengerialPspDetails],
+      messengerialGeneralDetails: [...messengerialGeneralDetails],
+      messengerialPostalDetails: [...messengerialPostalDetails],
+      todayTasks: [...todayTasks],
+      rushDocuments: [...rushDocuments],
+      thingsLearned: thingsLearned,
+      officeAdvice: officeAdvice,
     };
 
     const nextReports = [newReport, ...reports];
@@ -209,6 +423,16 @@ export default function App() {
     setCounters(getInitialCounters());
     setComments([]);
     setIncomingCallTimes([]);
+    setReceivedRsoRtoDetails([]);
+    setIncomingHandcarryDetails([]);
+    setMessengerialCoPspDetails([]);
+    setMessengerialPspDetails([]);
+    setMessengerialGeneralDetails([]);
+    setMessengerialPostalDetails([]);
+    setTodayTasks([]);
+    setRushDocuments([]);
+    setThingsLearned("");
+    setOfficeAdvice("");
     setFocusedKey(null);
 
     // Dynamic toast highlight
@@ -325,6 +549,29 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setActiveTab("planner")}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer group ${
+                activeTab === "planner"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <CheckSquare className={`w-4 h-4 shrink-0 transition-transform ${activeTab === "planner" ? "" : "group-hover:scale-110"}`} />
+                <span>Today's Task Planner</span>
+              </div>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 transition-colors ${
+                activeTab === "planner"
+                  ? "bg-white/20 text-white"
+                  : (todayTasks.some(t => !t.completed) || rushDocuments.some(r => !r.completed))
+                  ? "bg-amber-650 text-white animate-pulse"
+                  : "bg-slate-800 text-slate-400 group-hover:bg-slate-700"
+              }`}>
+                {todayTasks.filter(t => !t.completed).length + rushDocuments.filter(r => !r.completed).length}
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab("archive")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer group ${
                 activeTab === "archive"
@@ -362,21 +609,6 @@ export default function App() {
                 <span>Operations Handbook</span>
               </div>
               <ChevronRight className={`w-3.5 h-3.5 opacity-50 shrink-0 transition-all ${activeTab === "help" ? "translate-x-0" : "opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0"}`} />
-            </button>
-
-            <button
-              onClick={() => setActiveTab("sidebar")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer group ${
-                activeTab === "sidebar"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <PanelRight className={`w-4 h-4 shrink-0 transition-transform ${activeTab === "sidebar" ? "" : "group-hover:scale-110"}`} />
-                <span>Page Sidebar Utility</span>
-              </div>
-              <ChevronRight className={`w-3.5 h-3.5 opacity-50 shrink-0 transition-all ${activeTab === "sidebar" ? "translate-x-0" : "opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0"}`} />
             </button>
           </nav>
         </div>
@@ -504,6 +736,26 @@ export default function App() {
 
                   <button
                     onClick={() => {
+                      setActiveTab("planner");
+                      setIsMobileSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "planner"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <CheckSquare className="w-4 h-4 shrink-0" />
+                      <span>Today's Task Planner</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-600 text-white leading-none">
+                      {todayTasks.filter(t => !t.completed).length + rushDocuments.filter(r => !r.completed).length}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
                       setActiveTab("archive");
                       setIsMobileSidebarOpen(false);
                     }}
@@ -542,24 +794,6 @@ export default function App() {
                     <div className="flex items-center gap-2.5">
                       <BookOpen className="w-4 h-4 shrink-0" />
                       <span>Operations Handbook</span>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveTab("sidebar");
-                      setIsMobileSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === "sidebar"
-                        ? "bg-blue-600 text-white shadow-xs"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <PanelRight className="w-4 h-4 shrink-0" />
-                      <span>Page Sidebar Utility</span>
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
                   </button>
@@ -740,7 +974,7 @@ export default function App() {
                                       key={key}
                                       config={configInstance}
                                       count={Number(counters[key])}
-                                      onIncrement={() => handleIncrement(key)}
+                                      onIncrement={(detail) => handleIncrement(key, detail)}
                                       onDecrement={() => handleDecrement(key)}
                                       onSetSpecific={(val: number) => handleSetSpecific(key, val)}
                                       isFocused={focusedKey === key}
@@ -753,6 +987,72 @@ export default function App() {
                                               setCounters((prev) => ({
                                                 ...prev,
                                                 incomingCalls: Math.max(0, Number(prev.incomingCalls) - 1),
+                                              }));
+                                            }
+                                          : undefined
+                                      }
+                                      detailsList={
+                                        key === "receivedRsoRto"
+                                          ? receivedRsoRtoDetails
+                                          : key === "incomingHandcarryFiles"
+                                          ? incomingHandcarryDetails
+                                          : key === "messengerialCoPsp"
+                                          ? messengerialCoPspDetails
+                                          : key === "messengerialPsp"
+                                          ? messengerialPspDetails
+                                          : key === "messengerialGeneral"
+                                          ? messengerialGeneralDetails
+                                          : key === "messengerialPostal"
+                                          ? messengerialPostalDetails
+                                          : undefined
+                                      }
+                                      onRemoveDetailIndex={
+                                        key === "receivedRsoRto"
+                                          ? (idx) => {
+                                              setReceivedRsoRtoDetails((prev) => prev.filter((_, i) => i !== idx));
+                                              setCounters((prev) => ({
+                                                ...prev,
+                                                receivedRsoRto: Math.max(0, Number(prev.receivedRsoRto) - 1),
+                                              }));
+                                            }
+                                          : key === "incomingHandcarryFiles"
+                                          ? (idx) => {
+                                              setIncomingHandcarryDetails((prev) => prev.filter((_, i) => i !== idx));
+                                              setCounters((prev) => ({
+                                                ...prev,
+                                                incomingHandcarryFiles: Math.max(0, Number(prev.incomingHandcarryFiles) - 1),
+                                              }));
+                                            }
+                                          : key === "messengerialCoPsp"
+                                          ? (idx) => {
+                                              setMessengerialCoPspDetails((prev) => prev.filter((_, i) => i !== idx));
+                                              setCounters((prev) => ({
+                                                ...prev,
+                                                messengerialCoPsp: Math.max(0, Number(prev.messengerialCoPsp) - 1),
+                                              }));
+                                            }
+                                          : key === "messengerialPsp"
+                                          ? (idx) => {
+                                              setMessengerialPspDetails((prev) => prev.filter((_, i) => i !== idx));
+                                              setCounters((prev) => ({
+                                                ...prev,
+                                                messengerialPsp: Math.max(0, Number(prev.messengerialPsp) - 1),
+                                              }));
+                                            }
+                                          : key === "messengerialGeneral"
+                                          ? (idx) => {
+                                              setMessengerialGeneralDetails((prev) => prev.filter((_, i) => i !== idx));
+                                              setCounters((prev) => ({
+                                                ...prev,
+                                                messengerialGeneral: Math.max(0, Number(prev.messengerialGeneral) - 1),
+                                              }));
+                                            }
+                                          : key === "messengerialPostal"
+                                          ? (idx) => {
+                                              setMessengerialPostalDetails((prev) => prev.filter((_, i) => i !== idx));
+                                              setCounters((prev) => ({
+                                                ...prev,
+                                                messengerialPostal: Math.max(0, Number(prev.messengerialPostal) - 1),
                                               }));
                                             }
                                           : undefined
@@ -780,7 +1080,7 @@ export default function App() {
                                     key={configInstance.key}
                                     config={configInstance}
                                     count={Number(counters[configInstance.key])}
-                                    onIncrement={() => handleIncrement(configInstance.key)}
+                                    onIncrement={(detail) => handleIncrement(configInstance.key, detail)}
                                     onDecrement={() => handleDecrement(configInstance.key)}
                                     onSetSpecific={(val: number) => handleSetSpecific(configInstance.key, val)}
                                     isFocused={focusedKey === configInstance.key}
@@ -890,6 +1190,32 @@ export default function App() {
                   </div>
 
                 </div>
+              </motion.div>
+            )}
+
+            {/* TAB PLANNER: THE INTERACTIVE TASK SCHEDULER & NOTES */}
+            {activeTab === "planner" && (
+              <motion.div
+                key="tab-planner"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.18 }}
+                className="w-full"
+              >
+                <TaskPlannerView
+                  todayTasks={todayTasks}
+                  setTodayTasks={setTodayTasks}
+                  rushDocuments={rushDocuments}
+                  setRushDocuments={setRushDocuments}
+                  thingsLearned={thingsLearned}
+                  setThingsLearned={setThingsLearned}
+                  officeAdvice={officeAdvice}
+                  setOfficeAdvice={setOfficeAdvice}
+                  onCompileAndSave={handleCompileAndSave}
+                  time={time}
+                  date={date}
+                />
               </motion.div>
             )}
 
@@ -1007,213 +1333,6 @@ export default function App() {
                       <span>Local Security Status: <strong>Encrypted &amp; Isolated</strong></span>
                     </div>
                     <span className="text-[10px] text-slate-400 font-mono">RAMSYNC OFFICE LEDGER CORE ENGINE v2.4</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {activeTab === "sidebar" && (
-              <motion.div
-                key="tab-sidebar"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.18 }}
-                className="space-y-6 animate-fade-in"
-              >
-                {/* Intro Hero banner */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-3xs text-left">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-5 mb-5">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                        <PanelRight className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h2 className="text-base font-extrabold text-slate-800">
-                          Brave & Edge Page Sidebar Integration
-                        </h2>
-                        <p className="text-xs text-slate-400 mt-0.5 animate-pulse">
-                          Configure dual-panel workspace logging to operate counters seamlessly beside your active research sheets.
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        const width = 380;
-                        const height = window.screen.availHeight || 850;
-                        const left = window.screen.availWidth - width - 15;
-                        const top = 0;
-                        window.open(
-                          window.location.origin,
-                          "RAMSyncSidebar",
-                          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes,location=no,toolbar=no,menubar=no`
-                        );
-                      }}
-                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer hover:shadow-sm"
-                    >
-                      <PanelRight className="w-4 h-4" />
-                      Dock as Companion Sidebar Window
-                    </button>
-                  </div>
-
-                  {/* Browser Setup Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Brave - Highlighted because they use Brave in screenshot */}
-                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5 text-left relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-base">🦁</span>
-                        <h3 className="text-xs font-black text-amber-700 uppercase tracking-wider">
-                          1st Choice: Brave Sidebar Setup
-                        </h3>
-                      </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed mb-4">
-                        Brave's built-in sidebar allows full horizontal multi-tasking. Since you are active on Brave, pin RAMSync to logging side-pane instantly:
-                      </p>
-                      <ol className="text-xs text-slate-600 space-y-2 pl-4 list-decimal font-medium leading-relaxed">
-                        <li>Open the Brave Sidebar (press <strong className="text-slate-800">Ctrl+Alt+B</strong> on Windows or <strong className="text-slate-800">Cmd+Option+B</strong> on Mac).</li>
-                        <li>Click the <strong className="text-amber-600 font-bold">+</strong> button on the sidebar.</li>
-                        <li>Click <strong className="text-amber-600 font-bold">Add active page</strong> to lock RAMSync permanently inside your browser rail!</li>
-                      </ol>
-                    </div>
-
-                    {/* Edge */}
-                    <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-5 text-left relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none" />
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-base">🌐</span>
-                        <h3 className="text-xs font-black text-blue-700 uppercase tracking-wider">
-                          2nd Choice: Microsoft Edge Setup
-                        </h3>
-                      </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed mb-4">
-                        Edge contains a secure utility panel on the right sidebar edge. Connect your app draft counters in seconds:
-                      </p>
-                      <ol className="text-xs text-slate-600 space-y-2 pl-4 list-decimal font-medium leading-relaxed font-sans">
-                        <li>Look at the far right border of your Edge browser for the sidebar icons.</li>
-                        <li>Click the <strong className="text-slate-800">+</strong> icon (Customize Sidebar) inside the tray.</li>
-                        <li>Enter or paste our URL: <code className="bg-slate-100 p-1 text-[10px] rounded block truncate mt-1 text-slate-600 select-all">{window.location.origin}</code></li>
-                        <li>Click <strong>Add</strong> and RAMSync is ready beside any active document!</li>
-                      </ol>
-                    </div>
-
-                    {/* Opera / GX */}
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-5 text-left relative overflow-hidden font-sans">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl pointer-events-none" />
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-base">⭕</span>
-                        <h3 className="text-xs font-black text-red-700 uppercase tracking-wider">
-                          3rd Choice: Opera & GX Setup
-                        </h3>
-                      </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed mb-4 font-sans">
-                        Opera contains specialized sidebar panels. Register RAMSync as a custom web messenger panel:
-                      </p>
-                      <ol className="text-xs text-slate-600 space-y-2 pl-4 list-decimal font-medium leading-relaxed font-sans">
-                        <li>Right-click or tap the bottom 3 dots icon (<strong className="text-slate-800">...</strong>) on Opera's left sidebar.</li>
-                        <li>Enable <strong>Custom Site Panels</strong>.</li>
-                        <li>Input our web address: <code className="bg-slate-100 p-1 text-[10px] rounded block truncate mt-1 text-slate-600 select-all">{window.location.origin}</code></li>
-                        <li>Set the panel name to <strong>RAMSync</strong> and click confirm to pin it!</li>
-                      </ol>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Simulation and Preview Box */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-left shadow-3xs">
-                  <h3 className="text-xs font-extrabold text-slate-700 tracking-tight uppercase border-b border-slate-100 pb-2.5 mb-5 flex items-center gap-2 font-sans select-none">
-                    🖥️ Interactive Sidebar Simulation Preview
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                    {/* Left: explaining why */}
-                    <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-                      <div className="space-y-3 text-left">
-                        <h4 className="text-xs font-bold text-slate-800">Why Use the Page Sidebar Mode?</h4>
-                        <p className="text-xs text-slate-500 leading-relaxed font-sans">
-                          By running RAMSync as a page sidebar utility, you do not have to flip tabs repeatedly to record increments while researching.
-                        </p>
-                        <p className="text-xs text-slate-500 leading-relaxed font-sans">
-                          Your main browser window remains free for incoming RSO/RTO, sheets, emails, or scanning queues, while RAMSync occupies a slim vertical strip on the side.
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span>Hassle-Free Syncing</span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed font-sans">
-                          All updates and logs automatically synchronize in real-time across both views since they utilize the same sandboxed localStorage database.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Right: Mock Browser Window */}
-                    <div className="lg:col-span-7 bg-slate-100 rounded-xl p-3 border border-slate-200 flex flex-col h-[340px] relative overflow-hidden select-none">
-                      {/* Browser top-bar */}
-                      <div className="flex items-center gap-1.5 bg-slate-200/80 px-3 py-2 rounded-t-lg border-b border-slate-300">
-                        <div className="flex gap-1">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                        </div>
-                        <div className="bg-white/80 rounded-md text-[9px] font-medium text-slate-500 px-3 py-0.5 flex-1 max-w-xs mx-auto text-center truncate shadow-3xs font-mono">
-                          https://ramsync.vercel.app/
-                        </div>
-                      </div>
-
-                      {/* Mock Browser Body */}
-                      <div className="flex-1 flex bg-white rounded-b-lg overflow-hidden border-t border-slate-150">
-                        {/* Mock Main Tab screen */}
-                        <div className="flex-1 p-4 bg-slate-50 flex flex-col justify-center items-center text-center border-r border-slate-200 relative">
-                          <span className="text-2xl mb-1">🦆</span>
-                          <h5 className="text-[10px] font-extrabold text-slate-800">DuckDuckGo Search</h5>
-                          <p className="text-[8px] text-slate-400 px-4 mt-0.5 font-sans">Searching the web privately without tracking.</p>
-                          <div className="w-3/4 h-3 bg-white border border-slate-200 rounded mt-2 px-1 flex items-center justify-end">
-                            <span className="text-[7px] text-slate-300">🔍</span>
-                          </div>
-                        </div>
-
-                        {/* Mock Page Sidebar */}
-                        <div className="w-44 bg-slate-900 text-white p-3 flex flex-col justify-between border-l border-slate-200">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1.5 border-b border-slate-800 pb-1">
-                              <RamSyncLogo size={14} />
-                              <div className="text-left">
-                                <h6 className="text-[9px] font-black leading-none text-white font-sans">RAMSync</h6>
-                                <span className="text-[6px] text-slate-400 leading-none">Admin Core</span>
-                              </div>
-                            </div>
-                            
-                            <div className="bg-blue-600/10 border border-blue-500/20 rounded-md p-1.5 text-left space-y-1">
-                              <span className="text-[6px] text-blue-300 font-extrabold tracking-wider block leading-none uppercase">COUNTERS DRAFT</span>
-                              <div className="flex justify-between items-center text-[10px] font-mono">
-                                <span className="text-[6px] text-slate-300">Today's Counts</span>
-                                <span className="font-bold text-emerald-400 leading-none">{totalCount}</span>
-                              </div>
-                            </div>
-
-                            <div className="bg-slate-800/40 rounded-md p-1.5 text-left space-y-1">
-                              <span className="text-[5px] text-slate-400 uppercase leading-none block font-sans">Inbound Activity</span>
-                              <div className="flex justify-between items-center text-[6px]">
-                                <span>Calls</span>
-                                <span className="bg-blue-500/20 px-1 rounded-sm text-blue-300 font-bold">{Number(counters.incomingCalls)}</span>
-                              </div>
-                              <div className="flex justify-between items-center text-[6px]">
-                                <span>RSO/RTO</span>
-                                <span className="bg-blue-500/20 px-1 rounded-sm text-blue-300 font-bold">{Number(counters.receivedRsoRto)}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="text-[6px] text-slate-400 text-center border-t border-slate-800 pt-1 leading-none font-sans">
-                            🔒 Local sandbox secure
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </motion.div>

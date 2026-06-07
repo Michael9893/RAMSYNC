@@ -216,6 +216,64 @@ export function ReportArchive({ reports, onRemoveReport, onUpdateReport }: Repor
         currentY += 5;
       }
 
+      // RSO RTO Origins
+      if (report.receivedRsoRtoDetails && report.receivedRsoRtoDetails.length > 0) {
+        if (currentY > 260) {
+          doc.addPage();
+          currentY = 20;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text("RECEIVED RSO & RTO ORIGINS FEED", startX, currentY);
+        doc.line(startX, currentY + 2, 196, currentY + 2);
+        currentY += 8;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        const originText = report.receivedRsoRtoDetails.join("  |  ");
+        const splitOrigins = doc.splitTextToSize(originText, 182);
+        splitOrigins.forEach((line: string) => {
+          if (currentY > 275) {
+            doc.addPage();
+            currentY = 20;
+          }
+          doc.text(line, startX + 4, currentY);
+          currentY += 4.5;
+        });
+        currentY += 5;
+      }
+
+      // Handcarry Locations
+      if (report.incomingHandcarryDetails && report.incomingHandcarryDetails.length > 0) {
+        if (currentY > 260) {
+          doc.addPage();
+          currentY = 20;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text("INCOMING HANDCARRY CHECKPOINTS FEED", startX, currentY);
+        doc.line(startX, currentY + 2, 196, currentY + 2);
+        currentY += 8;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        const handText = report.incomingHandcarryDetails.join("  |  ");
+        const splitHands = doc.splitTextToSize(handText, 182);
+        splitHands.forEach((line: string) => {
+          if (currentY > 275) {
+            doc.addPage();
+            currentY = 20;
+          }
+          doc.text(line, startX + 4, currentY);
+          currentY += 4.5;
+        });
+        currentY += 5;
+      }
+
       // Narrative Statement
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10.5);
@@ -368,6 +426,60 @@ export function ReportArchive({ reports, onRemoveReport, onUpdateReport }: Repor
           const splitStamps = doc.splitTextToSize(stampsJoin, 140);
           let subY = currentY;
           splitStamps.forEach((line: string, lineIndex: number) => {
+            if (subY > 275) {
+              doc.addPage();
+              subY = 20;
+            }
+            doc.text(line, startX + (lineIndex === 0 ? 38 : 6), subY);
+            subY += 4.5;
+          });
+          currentY = subY;
+        }
+
+        // Received RSO RTO Details
+        if (report.receivedRsoRtoDetails && report.receivedRsoRtoDetails.length > 0) {
+          if (currentY > 275) {
+            doc.addPage();
+            currentY = 20;
+          }
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text("Received RSO & RTO:", startX + 3, currentY);
+
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(51, 65, 85);
+          const rsoJoin = report.receivedRsoRtoDetails.join(" | ");
+          const splitRso = doc.splitTextToSize(rsoJoin, 140);
+          let subY = currentY;
+          splitRso.forEach((line: string, lineIndex: number) => {
+            if (subY > 275) {
+              doc.addPage();
+              subY = 20;
+            }
+            doc.text(line, startX + (lineIndex === 0 ? 38 : 6), subY);
+            subY += 4.5;
+          });
+          currentY = subY;
+        }
+
+        // Incoming Handcarry Details
+        if (report.incomingHandcarryDetails && report.incomingHandcarryDetails.length > 0) {
+          if (currentY > 275) {
+            doc.addPage();
+            currentY = 20;
+          }
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text("Incoming Handcarry:", startX + 3, currentY);
+
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(51, 65, 85);
+          const handJoin = report.incomingHandcarryDetails.join(" | ");
+          const splitHand = doc.splitTextToSize(handJoin, 140);
+          let subY = currentY;
+          splitHand.forEach((line: string, lineIndex: number) => {
             if (subY > 275) {
               doc.addPage();
               subY = 20;
@@ -585,8 +697,8 @@ export function ReportArchive({ reports, onRemoveReport, onUpdateReport }: Repor
                     {/* Timestamp display list if logged */}
                     {report.incomingCallTimes && report.incomingCallTimes.length > 0 && (
                       <div className="bg-blue-50/30 border border-blue-100/60 p-2.5 rounded-lg text-[11px] leading-snug text-slate-700">
-                        <p className="font-bold text-blue-800 mb-1 flex items-center gap-1">
-                          ⏱ Logged Call Timestamps:
+                        <p className="font-bold text-blue-800 mb-1 flex items-center gap-1 text-[11px]">
+                          📞 Logged Call Timestamps:
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {report.incomingCallTimes.map((item, idx) => (
@@ -595,6 +707,96 @@ export function ReportArchive({ reports, onRemoveReport, onUpdateReport }: Repor
                             </span>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {report.receivedRsoRtoDetails && report.receivedRsoRtoDetails.length > 0 && (
+                      <div className="bg-indigo-50/30 border border-indigo-100/60 p-2.5 rounded-lg text-[11px] leading-snug text-slate-700 mt-2">
+                        <p className="font-bold text-indigo-800 mb-1 flex items-center gap-1 text-[11px]">
+                          📝 Received RSO & RTO Origins:
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {report.receivedRsoRtoDetails.map((item, idx) => (
+                            <span key={idx} className="bg-white border border-indigo-200 px-1.5 py-0.5 rounded-sm font-sans text-[10px] text-indigo-750">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {report.incomingHandcarryDetails && report.incomingHandcarryDetails.length > 0 && (
+                      <div className="bg-amber-50/30 border border-amber-100/60 p-2.5 rounded-lg text-[11px] leading-snug text-slate-700 mt-2">
+                        <p className="font-bold text-amber-800 mb-1 flex items-center gap-1 text-[11px]">
+                          💼 Incoming Handcarry Locations:
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {report.incomingHandcarryDetails.map((item, idx) => (
+                            <span key={idx} className="bg-white border border-amber-200 px-1.5 py-0.5 rounded-sm font-sans text-[10px] text-amber-750">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {report.todayTasks && report.todayTasks.length > 0 && (
+                      <div className="bg-emerald-50/20 border border-emerald-100/60 p-2.5 rounded-lg text-[11px] leading-snug text-slate-700 mt-2">
+                        <p className="font-bold text-emerald-800 mb-1 flex items-center gap-1 text-[11px]">
+                          ✓ Today's Checklist Tasks:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {report.todayTasks.map((item, idx) => (
+                            <span key={idx} className={`px-2 py-0.5 rounded-md font-sans text-[10px] border ${
+                              item.completed 
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 line-through" 
+                                : "bg-white text-slate-650 border-slate-200"
+                            }`}>
+                              {item.completed ? "✓ " : "⏳ "}{item.text}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {report.rushDocuments && report.rushDocuments.length > 0 && (
+                      <div className="bg-amber-50/25 border border-amber-100/40 p-2.5 rounded-lg text-[11px] leading-snug text-slate-700 mt-2">
+                        <p className="font-bold text-amber-900 mb-1 flex items-center gap-1 text-[11px]">
+                          ⚡ Urgent Rush Documents:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {report.rushDocuments.map((item, idx) => (
+                            <span key={idx} className={`px-2 py-0.5 rounded-md font-sans text-[10px] border ${
+                              item.completed 
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 line-through" 
+                                : "bg-amber-50/50 text-amber-850 border-amber-200"
+                            }`}>
+                              {item.completed ? "✓ " : "⏳ "}{item.title} (Target: {item.targetTime})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {report.thingsLearned && report.thingsLearned.trim() && (
+                      <div className="bg-indigo-50/30 border border-indigo-100/40 p-2.5 rounded-lg text-[11px] leading-snug text-slate-700 mt-2">
+                        <p className="font-bold text-indigo-800 mb-1 text-[11px]">
+                          🎓 Key Wisdom & Lessons Gained:
+                        </p>
+                        <p className="bg-white/80 border border-indigo-100 px-2 py-1.5 rounded-lg italic text-slate-650 leading-relaxed">
+                          "{report.thingsLearned.trim()}"
+                        </p>
+                      </div>
+                    )}
+
+                    {report.officeAdvice && report.officeAdvice.trim() && (
+                      <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-[11px] leading-snug text-slate-700 mt-2">
+                        <p className="font-bold text-slate-800 mb-1 text-[11px]">
+                          💡 Coworker & Supervisor Advice:
+                        </p>
+                        <p className="bg-white border border-slate-150 px-2 py-1.5 rounded-lg italic text-slate-650 leading-relaxed">
+                          "{report.officeAdvice.trim()}"
+                        </p>
                       </div>
                     )}
 

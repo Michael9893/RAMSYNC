@@ -30,6 +30,20 @@ export interface TaskConfig {
   description: string;
 }
 
+export interface TodayTask {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: string;
+}
+
+export interface RushDocument {
+  id: string;
+  title: string;
+  targetTime: string;
+  completed: boolean;
+}
+
 export interface Report {
   id: string; // unique chronological timestamp ID
   timestamp: string; // ISO string
@@ -39,6 +53,16 @@ export interface Report {
   comments: string[]; // custom "Other" typed tasks
   manualSummaryText: string; // compiled human-readable summary
   incomingCallTimes?: string[]; // timestamps of logged incoming calls
+  receivedRsoRtoDetails?: string[];
+  incomingHandcarryDetails?: string[];
+  messengerialCoPspDetails?: string[];
+  messengerialPspDetails?: string[];
+  messengerialGeneralDetails?: string[];
+  messengerialPostalDetails?: string[];
+  todayTasks?: TodayTask[];
+  rushDocuments?: RushDocument[];
+  thingsLearned?: string;
+  officeAdvice?: string;
 }
 
 export const TASK_CONFIGS: TaskConfig[] = [
